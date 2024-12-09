@@ -64,8 +64,6 @@ OpenShot comes with 3 standard themes, which change the look and feel of the pro
 
 .. image:: images/themes.jpg
 
-.. _preferences_preview_ref:
-
 Restoring Defaults
 """"""""""""""""""
 In OpenShot, each preferences category (or tab) in the Preferences window has a **Restore Defaults** button that allows
@@ -83,6 +81,8 @@ to reset certain preferences without affecting others.
 
 **Tip for Beginners:**
 - If you're not sure about a change you've made in a particular category, don’t hesitate to use the **Restore Defaults** button. It’s a simple way to undo changes and get back to the default settings for that specific category without affecting your overall setup.
+
+.. _preferences_preview_ref:
 
 Preview
 -------
