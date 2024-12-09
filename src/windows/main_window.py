@@ -3675,6 +3675,7 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
         # - OLD settings only includes device name (i.e. "PulseAudio Sound Server")
         # - NEW settings include both device name and type (double pipe delimited)
         #   (i.e. "PulseAudio Sound Server||ALSA")
+        playback_buffer_size = s.get("playback-buffer-size") or 512
         playback_device_value = s.get("playback-audio-device") or ""
         playback_device_parts = playback_device_value.split("||")
         playback_device_name = playback_device_parts[0]
@@ -3685,6 +3686,7 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
         # Set libopenshot settings
         lib_settings.PLAYBACK_AUDIO_DEVICE_NAME = playback_device_name
         lib_settings.PLAYBACK_AUDIO_DEVICE_TYPE = playback_device_type
+        lib_settings.PLAYBACK_AUDIO_BUFFER_SIZE = playback_buffer_size
 
         # Set scaling mode to lower quality scaling (for faster previews)
         lib_settings.HIGH_QUALITY_SCALING = False

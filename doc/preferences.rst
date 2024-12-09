@@ -99,7 +99,8 @@ real-time preview audio settings, for example, which audio device and sample rat
    ================================  ==================  ===========
    Setting                           Default             Description
    ================================  ==================  ===========
-   Default Video Profile             HD 720P 30 fps      Select the profile for Preview and Export defaults  
+   Default Video Profile             HD 720P 30 fps      Select the profile for Preview and Export defaults
+   Playback Audio Buffer Size        512                 Adjust how many audio samples must be buffered before audio playback begins. Allowed range of values is 128 to 4096. NOTE: If you are experiencing a large drift or delay in audio playback, try setting this value lower.
    Playback Audio Device             Default             
    Default Audio Sample Rate         44100               
    Default Audio Channels            Stereo (2 Channel)  
