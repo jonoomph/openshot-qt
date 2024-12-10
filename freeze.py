@@ -214,7 +214,7 @@ if sys.platform == "win32":
     extra_exe = {"base": None, "name": exe_name + "-cli.exe"}
 
     # Standard graphical Win32 launcher
-    base = "console"
+    base = "Win32GUI"
     build_exe_options["include_msvcr"] = True
     exe_name += ".exe"
 
