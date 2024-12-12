@@ -36,9 +36,9 @@ import uuid
 import webbrowser
 from time import sleep, time
 from datetime import datetime
-from threading import Thread
 from uuid import uuid4
 import zipfile
+import threading
 
 import openshot  # Python module for libopenshot (required video editing module installed separately)
 from PyQt5.QtCore import (
@@ -482,31 +482,32 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
 
     def save_project(self, file_path):
         """ Save a project to a file path, and refresh the screen """
-        app = get_app()
-        _ = app._tr  # Get translation function
+        with self.lock:
+            app = get_app()
+            _ = app._tr  # Get translation function
 
-        try:
-            # Update history in project data
-            s = app.get_settings()
-            app.updates.save_history(app.project, s.get("history-limit"))
+            try:
+                # Update history in project data
+                s = app.get_settings()
+                app.updates.save_history(app.project, s.get("history-limit"))
 
-            # Save recovery file first
-            self.save_recovery(file_path)
+                # Save recovery file
+                self.save_recovery(file_path)
 
-            # Save project to file
-            app.project.save(file_path)
+                # Save project to file
+                app.project.save(file_path)
 
-            # Set Window title
-            self.SetWindowTitle()
+                # Set Window title
+                self.SetWindowTitle()
 
-            # Load recent projects again
-            self.load_recent_menu()
+                # Load recent projects again
+                self.load_recent_menu()
 
-            log.info("Saved project %s", file_path)
+                log.info("Saved project %s", file_path)
 
-        except Exception as ex:
-            log.error("Couldn't save project %s", file_path, exc_info=1)
-            QMessageBox.warning(self, _("Error Saving Project"), str(ex))
+            except Exception as ex:
+                log.error("Couldn't save project %s", file_path, exc_info=1)
+                QMessageBox.warning(self, _("Error Saving Project"), str(ex))
 
     def save_recovery(self, file_path):
         """Saves the project and manages recovery files based on configured limits."""
@@ -523,17 +524,13 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
         recovery_filename = f"{timestamp}-{file_name}.zip"
         recovery_path = os.path.join(info.RECOVERY_PATH, recovery_filename)
 
-        def create_recovery():
-            try:
-                with zipfile.ZipFile(recovery_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    zipf.write(file_path, os.path.basename(file_path))
-                log.debug(f"Zipped recovery file created: {recovery_path}")
-                self.manage_recovery_files(daily_limit, historical_limit, file_name)
-            except Exception as e:
-                log.error(f"Failed to create zipped recovery file {recovery_path}: {e}")
-
-        # Run the recovery process in a thread
-        Thread(target=create_recovery, daemon=True).start()
+        try:
+            with zipfile.ZipFile(recovery_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.write(file_path, os.path.basename(file_path))
+            log.debug(f"Zipped recovery file created: {recovery_path}")
+            self.manage_recovery_files(daily_limit, historical_limit, file_name)
+        except Exception as e:
+            log.error(f"Failed to create zipped recovery file {recovery_path}: {e}")
 
     def manage_recovery_files(self, daily_limit, historical_limit, file_name):
         """Ensures recovery files adhere to the configured daily and historical limits."""
@@ -747,7 +744,7 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
                 file_path = "%s.osp" % file_path
 
             # Save project
-            self.save_project(file_path)
+            threading.Thread(target=self.save_project, args=(file_path,), daemon=True).start()
 
     def auto_save_project(self):
         """Auto save the project"""
@@ -768,7 +765,7 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
 
             # Save project
             log.info("Auto save project file: %s", file_path)
-            self.save_project(file_path)
+            threading.Thread(target=self.save_project, args=(file_path,), daemon=True).start()
 
             # Remove backup.osp (if any)
             if os.path.exists(info.BACKUP_FILE):
@@ -813,7 +810,7 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
                 file_path = "%s.osp" % file_path
 
             # Save new project
-            self.save_project(file_path)
+            threading.Thread(target=self.save_project, args=(file_path,), daemon=True).start()
 
     def actionImportFiles_trigger(self):
         app = get_app()
@@ -2918,36 +2915,37 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
 
     def restore_version_clicked(self, file_path):
         """Restore a previous project file from the recovery folder"""
-        app = get_app()
-        current_filepath = app.project.current_filepath if app.project else None
-        _ = get_app()._tr
+        with self.lock:
+            app = get_app()
+            current_filepath = app.project.current_filepath if app.project else None
+            _ = get_app()._tr
 
-        try:
-            # Rename the original project file
-            recovered_filename = os.path.splitext(os.path.basename(current_filepath))[0] + f"-{int(time())}-backup.osp"
-            recovered_filepath = os.path.join(os.path.dirname(current_filepath), recovered_filename)
-            if os.path.exists(current_filepath):
-                shutil.move(current_filepath, recovered_filepath)
-                log.info(f"Backup current project to: {recovered_filepath}")
+            try:
+                # Rename the original project file
+                recovered_filename = os.path.splitext(os.path.basename(current_filepath))[0] + f"-{int(time())}-backup.osp"
+                recovered_filepath = os.path.join(os.path.dirname(current_filepath), recovered_filename)
+                if os.path.exists(current_filepath):
+                    shutil.move(current_filepath, recovered_filepath)
+                    log.info(f"Backup current project to: {recovered_filepath}")
 
-            # Unzip if the selected recovery file is a .zip file
-            if file_path.endswith(".zip"):
-                with zipfile.ZipFile(file_path, 'r') as zipf:
-                    # Extract over top original project *.osp file
-                    zipf.extractall(os.path.dirname(current_filepath))
-                    extracted_files = zipf.namelist()
-                    if len(extracted_files) != 1:
-                        raise ValueError("Unexpected number of files in recovery zip.")
-            else:
-                # Replace the original *.osp project file with the recovery file *.osp
-                shutil.copyfile(file_path, current_filepath)
-            log.info(f"Recovery file `{file_path}` restored to: `{current_filepath}`")
+                # Unzip if the selected recovery file is a .zip file
+                if file_path.endswith(".zip"):
+                    with zipfile.ZipFile(file_path, 'r') as zipf:
+                        # Extract over top original project *.osp file
+                        zipf.extractall(os.path.dirname(current_filepath))
+                        extracted_files = zipf.namelist()
+                        if len(extracted_files) != 1:
+                            raise ValueError("Unexpected number of files in recovery zip.")
+                else:
+                    # Replace the original *.osp project file with the recovery file *.osp
+                    shutil.copyfile(file_path, current_filepath)
+                log.info(f"Recovery file `{file_path}` restored to: `{current_filepath}`")
 
-            # Open the recovered project
-            self.OpenProjectSignal.emit(current_filepath)
+                # Open the recovered project
+                self.OpenProjectSignal.emit(current_filepath)
 
-        except Exception as ex:
-            log.error(f"Error recovering project from `{file_path}` to `{current_filepath}`: {ex}", exc_info=True)
+            except Exception as ex:
+                log.error(f"Error recovering project from `{file_path}` to `{current_filepath}`: {ex}", exc_info=True)
 
     def remove_recent_project(self, file_path):
         """Remove a project from the Recent menu if OpenShot can't find it"""
@@ -3554,6 +3552,7 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
         super().__init__(*args)
         self.initialized = False
         self.shutting_down = False
+        self.lock = threading.Lock()
         self.installEventFilter(self)
 
         # set window on app for reference during initialization of children
