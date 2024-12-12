@@ -2907,10 +2907,11 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
             try:
                 timestamp = int(file_name.split("-", 1)[0])
                 friendly_time = self.time_ago_string(timestamp)
+                full_datetime = datetime.fromtimestamp(timestamp).strftime('%b %d, %H:%M')
                 file_path = os.path.join(recovery_dir, file_name)
 
-                # Add each recovery file
-                new_action = self.restore_menu.addAction(friendly_time)
+                # Add each recovery file with a tooltip
+                new_action = self.restore_menu.addAction(f"{friendly_time} ({full_datetime})")
                 new_action.triggered.connect(functools.partial(self.restore_version_clicked, file_path))
             except ValueError:
                 continue
