@@ -144,7 +144,8 @@ the correct recovery project.
 To **manually** recover a corrupt or broken ``*.osp``
 project file, please find the most recent copy in the recovery folder, and copy/paste the file
 into your original project folder location (i.e. the folder that contains your broken project), and then
-**open** this recovered project file in OpenShot.
+**open** this recovered project file in OpenShot. NOTE: If the recovery file has been zipped (``*.zip``), you
+must first extract the ``*.osp`` file into the project folder.
 
 .. _preferences_cache_ref:
 
