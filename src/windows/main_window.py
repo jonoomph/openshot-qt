@@ -34,8 +34,11 @@ import re
 import shutil
 import uuid
 import webbrowser
-from time import sleep
+from time import sleep, time
+from datetime import datetime
+from threading import Thread
 from uuid import uuid4
+import zipfile
 
 import openshot  # Python module for libopenshot (required video editing module installed separately)
 from PyQt5.QtCore import (
@@ -487,6 +490,9 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
             s = app.get_settings()
             app.updates.save_history(app.project, s.get("history-limit"))
 
+            # Save recovery file first
+            self.save_recovery(file_path)
+
             # Save project to file
             app.project.save(file_path)
 
@@ -501,6 +507,72 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
         except Exception as ex:
             log.error("Couldn't save project %s", file_path, exc_info=1)
             QMessageBox.warning(self, _("Error Saving Project"), str(ex))
+
+    def save_recovery(self, file_path):
+        """Saves the project and manages recovery files based on configured limits."""
+        app = get_app()
+        s = app.get_settings()
+        max_files = s.get("recovery-limit")
+        daily_limit = int(max_files * 0.7)
+        historical_limit = max_files - daily_limit  # Remaining for previous days
+
+        folder_path, file_name = os.path.split(file_path)
+        file_name, file_ext = os.path.splitext(file_name)
+
+        timestamp = int(time())
+        recovery_filename = f"{timestamp}-{file_name}.zip"
+        recovery_path = os.path.join(info.RECOVERY_PATH, recovery_filename)
+
+        def create_recovery():
+            try:
+                with zipfile.ZipFile(recovery_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    zipf.write(file_path, os.path.basename(file_path))
+                log.debug(f"Zipped recovery file created: {recovery_path}")
+                self.manage_recovery_files(daily_limit, historical_limit, file_name)
+            except Exception as e:
+                log.error(f"Failed to create zipped recovery file {recovery_path}: {e}")
+
+        # Run the recovery process in a thread
+        Thread(target=create_recovery, daemon=True).start()
+
+    def manage_recovery_files(self, daily_limit, historical_limit, file_name):
+        """Ensures recovery files adhere to the configured daily and historical limits."""
+        recovery_files = sorted(
+            ((f, os.path.getmtime(os.path.join(info.RECOVERY_PATH, f)))
+             for f in os.listdir(info.RECOVERY_PATH) if f.endswith(".zip") or f.endswith(".osp")),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        project_recovery_files = [
+            (f, mod_time) for f, mod_time in recovery_files
+            if f"-{file_name}" in f
+        ]
+
+        daily_files = []
+        historical_files = set()
+        retained_files = set()
+        now = datetime.now()
+
+        for f, mod_time in project_recovery_files:
+            mod_datetime = datetime.fromtimestamp(mod_time)
+
+            if mod_datetime.date() == now.date() and len(daily_files) < daily_limit:
+                daily_files.append(f)
+                retained_files.add(f)
+            elif mod_datetime.date() < now.date() and len(historical_files) < historical_limit:
+                if mod_datetime.date() not in historical_files:
+                    historical_files.add(mod_datetime.date())
+                    retained_files.add(f)
+
+        for f, _ in project_recovery_files:
+            if f not in retained_files:
+                file_path = os.path.join(info.RECOVERY_PATH, f)
+                try:
+                    os.unlink(file_path)
+                    log.info(f"Deleted excess recovery file: {file_path}")
+                except Exception as e:
+                    log.error(f"Failed to delete file {file_path}: {e}")
 
     def open_project(self, file_path, clear_thumbnails=True):
         """ Open a project from a file path, and refresh the screen """
@@ -682,7 +754,6 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
         import time
 
         app = get_app()
-        s = app.get_settings()
 
         # Get current filepath (if any)
         file_path = app.project.current_filepath
@@ -694,40 +765,6 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
             # Append .osp if needed
             if not file_path.endswith(".osp"):
                     file_path = "%s.osp" % file_path
-            folder_path, file_name = os.path.split(file_path)
-            file_name, file_ext = os.path.splitext(file_name)
-
-            # Make copy of unsaved project file in 'recovery' folder
-            recover_path_with_timestamp = os.path.join(
-                info.RECOVERY_PATH, "%d-%s.osp" % (int(time.time()), file_name))
-            if os.path.exists(file_path):
-                shutil.copy(file_path, recover_path_with_timestamp)
-            else:
-                log.warning(
-                    "Existing project *.osp file not found during recovery process: %s",
-                    file_path)
-
-            # Find any recovery file older than X auto-saves
-            old_backup_files = []
-            backup_file_count = 0
-            for backup_filename in reversed(sorted(os.listdir(info.RECOVERY_PATH))):
-                if ".osp" in backup_filename:
-                    backup_file_count += 1
-                    if backup_file_count > s.get("recovery-limit"):
-                        old_backup_files.append(os.path.join(info.RECOVERY_PATH, backup_filename))
-
-            # Delete recovery files which are 'too old'
-            for backup_filepath in old_backup_files:
-                try:
-                    if os.path.exists(backup_filepath):
-                        os.unlink(backup_filepath)
-                        log.info(f"Deleted backup file: {backup_filepath}")
-                    else:
-                        log.warning(f"File not found: {backup_filepath}")
-                except PermissionError:
-                    log.warning(f"Permission denied: {backup_filepath}. Unable to delete.")
-                except Exception as e:
-                    log.error(f"Error deleting file {backup_filepath}: {e}", exc_info=True)
 
             # Save project
             log.info("Auto save project file: %s", file_path)
@@ -2795,7 +2832,6 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
 
     def time_ago_string(self, timestamp):
         """ Returns a friendly time difference string for the given timestamp. """
-        from datetime import datetime
         delta = datetime.now() - datetime.fromtimestamp(timestamp)
         seconds = delta.total_seconds()
 
@@ -2813,27 +2849,33 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
 
     def load_restore_menu(self):
         """ Clear and load the list of restore version menu items """
-        recovery_dir = info.RECOVERY_PATH
-        _ = get_app()._tr  # Get translation function
-        app = get_app()  # Get the application instance
-
-        # Get list of recovery files in the directory that match the current project
-        current_filepath = app.project.current_filepath if app.project else None
-        recovery_files = [
-            f for f in os.listdir(recovery_dir)
-            if f.endswith(".osp") and current_filepath and f.split("-", 1)[1].startswith(os.path.basename(current_filepath).replace(".osp", ""))
-        ]
+        _ = get_app()._tr
 
         # Add Restore Previous Version menu (after Open File)
         if not self.restore_menu:
             # Create a new restore menu
             self.restore_menu = self.menuFile.addMenu(QIcon.fromTheme("edit-undo"), _("Recovery"))
+            self.restore_menu.aboutToShow.connect(self.populate_restore_menu)
             self.menuFile.insertMenu(self.actionRecoveryProjects, self.restore_menu)
-        else:
-            # Clear the existing children
-            self.restore_menu.clear()
 
-        # Add recovery files to menu
+    def populate_restore_menu(self):
+        """Clear and re-Add the restore project menu items as needed"""
+        app = get_app()
+        _ = get_app()._tr
+        current_filepath = app.project.current_filepath if app.project else None
+
+        # Clear the existing children
+        self.restore_menu.clear()
+
+        # Get a list of recovery files matching the current project
+        recovery_files = []
+        if current_filepath:
+            recovery_dir = info.RECOVERY_PATH
+            recovery_files = [
+                f for f in os.listdir(recovery_dir)
+                if (f.endswith(".osp") or f.endswith(".zip")) and "-" in f and current_filepath and f.split("-", 1)[1].startswith(os.path.basename(current_filepath).replace(".osp", ""))
+            ]
+
         # Show just a placeholder menu, if we have no recovery files
         if not recovery_files:
             self.restore_menu.addAction(_("No Previous Versions Available")).setDisabled(True)
@@ -2856,19 +2898,37 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
                 continue
 
     def restore_version_clicked(self, file_path):
-        """ Handle restoring a previous version when a menu item is clicked """
-        app = get_app()  # Get the application instance
+        """Restore a previous project file from the recovery folder"""
+        app = get_app()
         current_filepath = app.project.current_filepath if app.project else None
+        _ = get_app()._tr
 
-        if current_filepath:
-            # Copy the recovery file to the current project folder without overwriting existing project
-            project_folder = os.path.dirname(current_filepath)
-            new_file_path = os.path.join(project_folder, os.path.basename(file_path))
-            log.info(f"Recover project from {file_path} to {new_file_path}")
-            shutil.copy(file_path, new_file_path)
+        try:
+            # Rename the original project file
+            recovered_filename = os.path.splitext(os.path.basename(current_filepath))[0] + f"-{int(time())}-backup.osp"
+            recovered_filepath = os.path.join(os.path.dirname(current_filepath), recovered_filename)
+            if os.path.exists(current_filepath):
+                shutil.move(current_filepath, recovered_filepath)
+                log.info(f"Backup current project to: {recovered_filepath}")
 
-            # Emit signal to open the copied project file
-            self.OpenProjectSignal.emit(new_file_path)
+            # Unzip if the selected recovery file is a .zip file
+            if file_path.endswith(".zip"):
+                with zipfile.ZipFile(file_path, 'r') as zipf:
+                    # Extract over top original project *.osp file
+                    zipf.extractall(os.path.dirname(current_filepath))
+                    extracted_files = zipf.namelist()
+                    if len(extracted_files) != 1:
+                        raise ValueError("Unexpected number of files in recovery zip.")
+            else:
+                # Replace the original *.osp project file with the recovery file *.osp
+                shutil.copyfile(file_path, current_filepath)
+            log.info(f"Recovery file `{file_path}` restored to: `{current_filepath}`")
+
+            # Open the recovered project
+            self.OpenProjectSignal.emit(current_filepath)
+
+        except Exception as ex:
+            log.error(f"Error recovering project from `{file_path}` to `{current_filepath}`: {ex}", exc_info=True)
 
     def remove_recent_project(self, file_path):
         """Remove a project from the Recent menu if OpenShot can't find it"""
