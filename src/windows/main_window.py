@@ -2832,20 +2832,38 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
 
     def time_ago_string(self, timestamp):
         """ Returns a friendly time difference string for the given timestamp. """
+        _ = get_app()._tr
+
+        SECONDS_IN_MINUTE = 60
+        SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60
+        SECONDS_IN_DAY = SECONDS_IN_HOUR * 24
+        SECONDS_IN_WEEK = SECONDS_IN_DAY * 7
+        SECONDS_IN_MONTH = SECONDS_IN_WEEK * 4
+        SECONDS_IN_YEAR = SECONDS_IN_MONTH * 12
+
         delta = datetime.now() - datetime.fromtimestamp(timestamp)
         seconds = delta.total_seconds()
 
-        if seconds < 60:
-            return f"{int(seconds)} seconds ago"
-        elif seconds < 3600:
-            minutes = seconds // 60
-            return f"{int(minutes)} minute{'s' if minutes > 1 else ''} ago"
-        elif seconds < 86400:
-            hours = seconds // 3600
-            return f"{int(hours)} hour{'s' if hours > 1 else ''} ago"
+        if seconds < SECONDS_IN_MINUTE:
+            return _("{} seconds ago").format(int(seconds))
+        elif seconds < SECONDS_IN_HOUR:
+            minutes = seconds // SECONDS_IN_MINUTE
+            return _("{} minutes ago").format(int(minutes))
+        elif seconds < SECONDS_IN_DAY:
+            hours = seconds // SECONDS_IN_HOUR
+            return _("{} hours ago").format(int(hours))
+        elif seconds < SECONDS_IN_WEEK:
+            days = seconds // SECONDS_IN_DAY
+            return _("{} days ago").format(int(days))
+        elif seconds < SECONDS_IN_MONTH:
+            weeks = seconds // SECONDS_IN_WEEK
+            return _("{} weeks ago").format(int(weeks))
+        elif seconds < SECONDS_IN_YEAR:
+            months = seconds // SECONDS_IN_MONTH
+            return _("{} months ago").format(int(months))
         else:
-            days = seconds // 86400
-            return f"{int(days)} day{'s' if days > 1 else ''} ago"
+            years = seconds // SECONDS_IN_YEAR
+            return _("{} years ago").format(int(years))
 
     def load_restore_menu(self):
         """ Clear and load the list of restore version menu items """
