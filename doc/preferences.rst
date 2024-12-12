@@ -130,22 +130,24 @@ or user error.
 Recovery
 """"""""
 
-Before each save, a copy of the current project is saved in the recovery folder, to further
+**Before each save**, a compressed ``*.zip`` copy of the current project is saved in the recovery folder, to further
 reduce the risk of data loss. The recovery folder is located at ``~/.openshot_qt/recovery/`` or
 ``C:\Users\USERNAME\.openshot_qt\recovery``.
 
 To recover a corrupt or broken ``*.osp`` project file, use the :guilabel:`File->Recovery`
 menu on the main window after opening your project. If available, a list of matching project versions from
 the recovery folder are listed in chronological order (most recent one at the top). This will
-automatically rename your current project file to "{project-name}-{time}-backup.osp", and
+automatically rename your current project file to ``{project-name}-{time}-backup.osp``, and
 replace it with the recovery project file. You can repeat this process until you find
-the correct recovery project.
+the correct recovery project. NOTE: If for some unexpected reason the recovery process fails, you can always rename
+the "-backup.osp" file to the original project file name to restore it.
 
 To **manually** recover a corrupt or broken ``*.osp``
 project file, please find the most recent copy in the recovery folder, and copy/paste the file
-into your original project folder location (i.e. the folder that contains your broken project), and then
-**open** this recovered project file in OpenShot. NOTE: If the recovery file has been zipped (``*.zip``), you
-must first extract the ``*.osp`` file into the project folder.
+into your original project folder location (i.e. the folder that contains your broken project).
+If the recovery file has been zipped (``*.zip``), you must first extract the ``*.osp``, and then
+copy it into your project folder. Recovery files are named ``{time}-{project-name}``. You can also use the
+**Date Modified** on the file to select the version you are interested in recovering.
 
 .. _preferences_cache_ref:
 
