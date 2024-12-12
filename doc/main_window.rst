@@ -223,6 +223,7 @@ are renamed and/or rearranged.
        - :guilabel:`New Project` Create a blank new project.
        - :guilabel:`Open Project` Open an existing project.
        - :guilabel:`Recent Projects` Access recently opened projects.
+       - :guilabel:`Recovery` Restore a previously saved version of your current project.
        - :guilabel:`Save Project` Save the current project.
        - :guilabel:`Import Files` Import media files into the project.
        - :guilabel:`Choose Profile` Select a project profile (*i.e. 1080p @ 30fps, 720p @ 24fps, ...*).

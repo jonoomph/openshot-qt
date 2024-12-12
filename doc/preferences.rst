@@ -111,21 +111,40 @@ Autosave
 
 .. image:: images/preferences-3-autosave.jpg
 
-Autosave is a saving function in OpenShot which automatically saves the current changes to your project after
+Autosave is a feature in OpenShot which automatically saves the current changes to your project after
 a specific number of minutes, helping to reduce the risk or impact of data loss in case of a crash, freeze
 or user error.
+
+.. table::
+   :widths: 30 15
+
+   =====================================  ==================
+   Setting                                Default
+   =====================================  ==================
+   Enable Autosave                        Enabled
+   Autosave Interval (minutes)            3
+   History Limit (# of undo/redo)         15
+   Recovery Limit (# of project copies)   30
+   =====================================  ==================
 
 Recovery
 """"""""
 
-Before each save, a copy of the current project is created in a recovery folder, to further
+Before each save, a copy of the current project is saved in the recovery folder, to further
 reduce the risk of data loss. The recovery folder is located at ``~/.openshot_qt/recovery/`` or
-``C:\Users\USERNAME\.openshot_qt\recovery``. If you need to recover a corrupt or broken ``*.osp``
+``C:\Users\USERNAME\.openshot_qt\recovery``.
+
+To recover a corrupt or broken ``*.osp`` project file, use the :guilabel:`File->Recovery`
+menu on the main window after opening your project. If available, a list of matching project versions from
+the recovery folder are listed in chronological order (most recent one at the top). This will
+automatically rename your current project file to "{project-name}-{time}-backup.osp", and
+replace it with the recovery project file. You can repeat this process until you find
+the correct recovery project.
+
+To **manually** recover a corrupt or broken ``*.osp``
 project file, please find the most recent copy in the recovery folder, and copy/paste the file
-in your original project folder location (i.e. the folder that contains your broken project), and then
-**open** this recovered project file in OpenShot. Many versions of each project are stored in the
-recovery folder, and if you still have issues with the recovered ``*.osp`` file, you can repeat this
-process with older versions contained in the recovery folder.
+into your original project folder location (i.e. the folder that contains your broken project), and then
+**open** this recovered project file in OpenShot.
 
 .. _preferences_cache_ref:
 
