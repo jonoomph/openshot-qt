@@ -74,10 +74,14 @@ multi-threaded CPU, lots of RAM (memory), and a modern GPU. We have listed many 
                        the proxy files, simply copy/paste your `*.osp` project file back into the original folder, and export
                        the higher quality, original files.
    Audio Device        If you are still having issues with audio lag or sync, please verify you are using the correct
-                       Audio Device for playback (in the OpenShot Preferences). See :ref:`preferences_preview_ref`. Also,
-                       verify your default audio device (on your operating system) is using the same sample rate. On
-                       certain operating systems (such as Windows), mismatching sample rates can cause severe audio
-                       / video sync problems. Be sure to restart OpenShot after changing the audio device.
+                       :guilabel:`Playback Audio Device` for playback (in the OpenShot Preferences). See :ref:`preferences_preview_ref`. Verify
+                       your default audio device (on your operating system) is using the same sample rate and all *Audio Enhancements* are disabled. On
+                       certain operating systems (such as Windows), mismatching sample rates or audio enhancements can cause severe audio
+                       / video sync problems. Lastly, try adjusting the :guilabel:`Playback Audio Buffer Size` (lower values
+                       will playback audio with less delay, higher values will playback audio with a larger delay). OpenShot
+                       defaults to a buffer size of 512, which is reasonable for most systems, however on some systems you
+                       might need to lower (or raise) this value for smooth and lag-free audio playback. Be sure to restart
+                       OpenShot after changing the audio playback settings.
    ==================  ============
 
 Audio Troubleshooting
@@ -95,10 +99,16 @@ your issue, here are some additional troubleshooting steps you can take.
    Clean Install       See :ref:`preferences_reset_ref` for a clean install
    Audio Device        Check that the Playback Audio Device is set correctly for your sound output under Preferences
                        in the Preview tab. Restart OpenShot after changing the settings. You can also try a different
-                       audio device (USB, audio over HDMI from the video card, etc.) to rule out other audio issues.
+                       audio device (USB, audio over HDMI from the video card, headphones, etc.) to rule out other audio issues.
                        Disable `automatic sound suppression` for voice calls during microphone activity, and disable
                        `Audio Enhancements` under the advanced settings tab of your audio device (not all audio devices
                        have these settings). See :ref:`preferences_preview_ref`.
+   Audio Buffer Size   The audio buffer size is the amount of audio samples which must first be buffered in OpenShot before
+                       audio playback can begin. If this value is too low, you might experience audio break-up / crackle / popping.
+                       If this value is too high, you might experience delays or lag before audio playback begins. OpenShot
+                       defaults this value to 512, which is a reasonable default for most systems, which should provide smooth
+                       audio playback with minimal noticeable lag or delay. However, on some systems this value might need
+                       to be adjusted up or down, for in-sync and lag-free audio playback. The range is 128 to 4096.
    Sample Rate         Ensure that the `Default Audio Sample Rate` and `Default Audio Channels` on the Preview tab of the
                        Preferences window match your hardware. You can also check these settings in the operating system
                        control panel (i.e. Windows Sound Control Panel). See :ref:`preferences_preview_ref`.

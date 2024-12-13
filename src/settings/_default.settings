@@ -139,6 +139,16 @@
     "restart": true
   },
   {
+    "min": 128,
+    "max": 4096,
+    "value": 512,
+    "title": "Playback Audio Buffer Size",
+    "category": "Preview",
+    "setting": "playback-buffer-size",
+    "type": "spinner-int",
+    "restart": true
+  },
+  {
     "value": "",
     "title": "Playback Audio Device",
     "category": "Preview",

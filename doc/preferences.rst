@@ -64,8 +64,6 @@ OpenShot comes with 3 standard themes, which change the look and feel of the pro
 
 .. image:: images/themes.jpg
 
-.. _preferences_preview_ref:
-
 Restoring Defaults
 """"""""""""""""""
 In OpenShot, each preferences category (or tab) in the Preferences window has a **Restore Defaults** button that allows
@@ -84,6 +82,8 @@ to reset certain preferences without affecting others.
 **Tip for Beginners:**
 - If you're not sure about a change you've made in a particular category, don’t hesitate to use the **Restore Defaults** button. It’s a simple way to undo changes and get back to the default settings for that specific category without affecting your overall setup.
 
+.. _preferences_preview_ref:
+
 Preview
 -------
 
@@ -99,7 +99,8 @@ real-time preview audio settings, for example, which audio device and sample rat
    ================================  ==================  ===========
    Setting                           Default             Description
    ================================  ==================  ===========
-   Default Video Profile             HD 720P 30 fps      Select the profile for Preview and Export defaults  
+   Default Video Profile             HD 720P 30 fps      Select the profile for Preview and Export defaults
+   Playback Audio Buffer Size        512                 Adjust how many audio samples must be buffered before audio playback begins. Allowed range of values is 128 to 4096. NOTE: If you are experiencing a large drift or delay in audio playback, try setting this value lower.
    Playback Audio Device             Default             
    Default Audio Sample Rate         44100               
    Default Audio Channels            Stereo (2 Channel)  
@@ -110,21 +111,43 @@ Autosave
 
 .. image:: images/preferences-3-autosave.jpg
 
-Autosave is a saving function in OpenShot which automatically saves the current changes to your project after
+Autosave is a feature in OpenShot which automatically saves the current changes to your project after
 a specific number of minutes, helping to reduce the risk or impact of data loss in case of a crash, freeze
 or user error.
+
+.. table::
+   :widths: 30 15
+
+   =====================================  ==================
+   Setting                                Default
+   =====================================  ==================
+   Enable Autosave                        Enabled
+   Autosave Interval (minutes)            3
+   History Limit (# of undo/redo)         15
+   Recovery Limit (# of project copies)   30
+   =====================================  ==================
 
 Recovery
 """"""""
 
-Before each save, a copy of the current project is created in a recovery folder, to further
+**Before each save**, a compressed ``*.zip`` copy of the current project is saved in the recovery folder, to further
 reduce the risk of data loss. The recovery folder is located at ``~/.openshot_qt/recovery/`` or
-``C:\Users\USERNAME\.openshot_qt\recovery``. If you need to recover a corrupt or broken ``*.osp``
+``C:\Users\USERNAME\.openshot_qt\recovery``.
+
+To recover a corrupt or broken ``*.osp`` project file, use the :guilabel:`File->Recovery`
+menu on the main window after opening your project. If available, a list of matching project versions from
+the recovery folder are listed in chronological order (most recent one at the top). This will
+automatically rename your current project file to ``{project-name}-{time}-backup.osp``, and
+replace it with the recovery project file. You can repeat this process until you find
+the correct recovery project. NOTE: If for some unexpected reason the recovery process fails, you can always rename
+the "-backup.osp" file to the original project file name to restore it.
+
+To **manually** recover a corrupt or broken ``*.osp``
 project file, please find the most recent copy in the recovery folder, and copy/paste the file
-in your original project folder location (i.e. the folder that contains your broken project), and then
-**open** this recovered project file in OpenShot. Many versions of each project are stored in the
-recovery folder, and if you still have issues with the recovered ``*.osp`` file, you can repeat this
-process with older versions contained in the recovery folder.
+into your original project folder location (i.e. the folder that contains your broken project).
+If the recovery file has been zipped (``*.zip``), you must first extract the ``*.osp``, and then
+copy it into your project folder. Recovery files are named ``{time}-{project-name}``. You can also use the
+**Date Modified** on the file to select the version you are interested in recovering.
 
 .. _preferences_cache_ref:
 
