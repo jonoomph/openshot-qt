@@ -2003,6 +2003,7 @@ class TimelineView(updates.UpdateInterface, ViewClass):
 
         # Emit signal to ignore updates (start ignoring updates)
         get_app().window.IgnoreUpdates.emit(True)
+        new_starting_frame = -1
 
         try:
             # Get the nearest starting frame position to the playhead (snap to frame boundaries)
@@ -2039,6 +2040,9 @@ class TimelineView(updates.UpdateInterface, ViewClass):
                         removed_duration = original_duration - (end_of_clip - new_start)
                         clip.data["position"] = original_position  # Move right side back to original position
                         self.ripple_delete_gap(playhead_position, clip.data["layer"], removed_duration)
+
+                        # Seek to new starting frame
+                        new_starting_frame = original_position * (fps_num / fps_den) + 1
 
                 elif action == MenuSlice.KEEP_BOTH:
                     # Update clip data for the left clip
@@ -2093,6 +2097,9 @@ class TimelineView(updates.UpdateInterface, ViewClass):
                         trans.data["position"] = original_position
                         self.ripple_delete_gap(playhead_position, trans.data["layer"], removed_duration)
 
+                        # Seek to new starting frame
+                        new_starting_frame = original_position * (fps_num / fps_den) + 1
+
                 elif action == MenuSlice.KEEP_BOTH:
                     # Update data for the left transition
                     trans.data["end"] = start_of_tran + (playhead_position - original_position)
@@ -2118,6 +2125,10 @@ class TimelineView(updates.UpdateInterface, ViewClass):
 
             # Emit signal to resume updates (stop ignoring updates)
             get_app().window.IgnoreUpdates.emit(False)
+
+            if new_starting_frame != -1:
+                # Seek to new position (if needed)
+                self.window.SeekSignal.emit(round(new_starting_frame))
 
     def ripple_delete_gap(self, ripple_start, layer, ripple_gap):
         """Remove the ripple gap and adjust subsequent items"""
