@@ -122,6 +122,7 @@ QToolBar#toolBar QToolButton {
     color: #91C3FF;
     padding-top: 10px;
     padding-bottom: 10px;
+    border: none;
 }
 
 QToolBar#toolBar QToolButton:hover {
@@ -526,7 +527,8 @@ QMessageBox QPushButton[text="&{_('Yes')}"] {{
             {"action": self.app.window.actionProfile, "icon": "themes/cosmic/images/tool-profile.svg", "style": Qt.ToolButtonTextBesideIcon},
             {"expand": True},
             {"action": self.app.window.actionSave, "icon": "themes/cosmic/images/tool-save-project.svg", "style": Qt.ToolButtonTextBesideIcon},
-            {"action": self.app.window.actionExportVideo, "icon": "themes/cosmic/images/tool-export.svg", "style": Qt.ToolButtonTextBesideIcon, "stylesheet": "QToolButton {  background-color: #0078FF; color: #FFFFFF; }"},
+            {"action": self.app.window.actionExportVideo, "icon": "themes/cosmic/images/tool-export.svg",
+             "style": Qt.ToolButtonTextBesideIcon, "stylesheet": "QToolButton { background-color: #0078FF; color: #FFFFFF; border: none; } QToolButton:hover, QToolButton:pressed { background-color: #006EE6; }"},
             {"action": self.app.window.actionUpdate, "icon": "themes/cosmic/images/warning.svg", "visible": False, "style": Qt.ToolButtonTextBesideIcon, "stylesheet": "QToolButton {  background-color: #141923; color: #FABE0A; }"}
         ]
         self.set_toolbar_buttons(self.app.window.toolBar, icon_size=20, settings=toolbar_buttons)
