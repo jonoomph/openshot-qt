@@ -784,7 +784,7 @@ class Export(QDialog):
         self.txtFileName.setEnabled(False)
         self.lblFolderPath.setEnabled(False)
         self.txtExportFolder.setEnabled(False)
-        self.tabWidget.setEnabled(False)
+        self.exportTabs.setEnabled(False)
         self.export_button.setEnabled(False)
         self.btnBrowse.setEnabled(False)
 
@@ -794,7 +794,7 @@ class Export(QDialog):
         self.txtFileName.setEnabled(True)
         self.lblFolderPath.setEnabled(True)
         self.txtExportFolder.setEnabled(True)
-        self.tabWidget.setEnabled(True)
+        self.exportTabs.setEnabled(True)
         self.export_button.setEnabled(True)
         self.btnBrowse.setEnabled(True)
 
