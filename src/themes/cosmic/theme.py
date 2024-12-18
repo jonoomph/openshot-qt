@@ -481,6 +481,10 @@ QMessageBox QPushButton[text="&{_('Yes')}"] {{
     background-color: #0078FF;
     color: #FFFFFF;
 }}
+
+QMessageBox QPushButton[text="&{_('Cancel')}"] {{
+    qproperty-icon: none;
+}}
         """ + self.style_sheet.replace("{PATH}", f"{path_unix_slashes}/")
 
     def apply_theme(self):
