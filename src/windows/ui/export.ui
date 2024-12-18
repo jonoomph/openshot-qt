@@ -72,7 +72,7 @@
     </layout>
    </item>
    <item row="1" column="0">
-    <widget class="QTabWidget" name="tabWidget">
+    <widget class="QTabWidget" name="exportTabs">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -1064,7 +1064,7 @@
   <tabstop>txtFileName</tabstop>
   <tabstop>txtExportFolder</tabstop>
   <tabstop>btnBrowse</tabstop>
-  <tabstop>tabWidget</tabstop>
+  <tabstop>exportTabs</tabstop>
   <tabstop>cboSimpleProjectType</tabstop>
   <tabstop>cboSimpleTarget</tabstop>
   <tabstop>cboSimpleVideoProfile</tabstop>

@@ -274,6 +274,11 @@ QTabBar::tab {
     color: rgba(145, 195, 255, 0.4);
 }
 
+QTabWidget#exportTabs QTabBar::tab,
+QTabWidget#tabCategories QTabBar::tab {
+    margin-bottom: 10px;
+}
+
 QTabBar::tab:selected {
     color: rgba(145, 195, 255, 1.0);
 }
@@ -343,6 +348,7 @@ QComboBox {
     padding: 6px;
     padding-left: 8px;
     padding-right: 8px;
+    combobox-popup: 0;
 }
 
 QComboBox::drop-down {
@@ -416,6 +422,7 @@ QWidget#Output QTextEdit {
 
 QToolBox::tab {
     color: #91C3FF;
+    border-top: 1px solid rgba(145, 195, 255, .2);
 }
 
 QTabWidget QWidget#pageAdvancedOptions, QWidget#pageProfile, QWidget#pageImageSequenceSettings, QWidget#pageVideoSettings, QWidget#pageAudioSettings {
