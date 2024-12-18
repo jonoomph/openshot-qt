@@ -238,12 +238,6 @@ class Export(QDialog):
                     # This exception occurs when there's a problem parsing the Profile file - display a message and continue
                     log.error("Failed to parse file '%s' as a profile: %s" % (profile_path, e))
 
-        # Loop through sorted profiles
-        for profile_name in sorted(self.profile_names):
-            # Add to dropdown
-            self.cboProfile.addItem(self.getProfileName(self.getProfilePath(profile_name)),
-                                    self.getProfilePath(profile_name))
-
         # ********* Simple Project Type **********
         # load the simple project type dropdown
         presets = []
