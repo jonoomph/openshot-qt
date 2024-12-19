@@ -276,7 +276,8 @@ QTabBar::tab {
 }
 
 QTabWidget#exportTabs QTabBar::tab,
-QTabWidget#tabCategories QTabBar::tab {
+QTabWidget#tabCategories QTabBar::tab,
+QTabWidget#tabCredits QTabBar::tab{
     margin-bottom: 10px;
 }
 
