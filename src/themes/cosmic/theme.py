@@ -122,6 +122,7 @@ QToolBar#toolBar QToolButton {
     color: #91C3FF;
     padding-top: 10px;
     padding-bottom: 10px;
+    border: none;
 }
 
 QToolBar#toolBar QToolButton:hover {
@@ -274,6 +275,11 @@ QTabBar::tab {
     color: rgba(145, 195, 255, 0.4);
 }
 
+QTabWidget#exportTabs QTabBar::tab,
+QTabWidget#tabCategories QTabBar::tab {
+    margin-bottom: 10px;
+}
+
 QTabBar::tab:selected {
     color: rgba(145, 195, 255, 1.0);
 }
@@ -343,6 +349,7 @@ QComboBox {
     padding: 6px;
     padding-left: 8px;
     padding-right: 8px;
+    combobox-popup: 0;
 }
 
 QComboBox::drop-down {
@@ -416,6 +423,7 @@ QWidget#Output QTextEdit {
 
 QToolBox::tab {
     color: #91C3FF;
+    border-top: 1px solid rgba(145, 195, 255, .2);
 }
 
 QTabWidget QWidget#pageAdvancedOptions, QWidget#pageProfile, QWidget#pageImageSequenceSettings, QWidget#pageVideoSettings, QWidget#pageAudioSettings {
@@ -473,6 +481,10 @@ QMessageBox QPushButton[text="&{_('Yes')}"] {{
     background-color: #0078FF;
     color: #FFFFFF;
 }}
+
+QMessageBox QPushButton[text="&{_('Cancel')}"] {{
+    qproperty-icon: none;
+}}
         """ + self.style_sheet.replace("{PATH}", f"{path_unix_slashes}/")
 
     def apply_theme(self):
@@ -519,7 +531,8 @@ QMessageBox QPushButton[text="&{_('Yes')}"] {{
             {"action": self.app.window.actionProfile, "icon": "themes/cosmic/images/tool-profile.svg", "style": Qt.ToolButtonTextBesideIcon},
             {"expand": True},
             {"action": self.app.window.actionSave, "icon": "themes/cosmic/images/tool-save-project.svg", "style": Qt.ToolButtonTextBesideIcon},
-            {"action": self.app.window.actionExportVideo, "icon": "themes/cosmic/images/tool-export.svg", "style": Qt.ToolButtonTextBesideIcon, "stylesheet": "QToolButton {  background-color: #0078FF; color: #FFFFFF; }"},
+            {"action": self.app.window.actionExportVideo, "icon": "themes/cosmic/images/tool-export.svg",
+             "style": Qt.ToolButtonTextBesideIcon, "stylesheet": "QToolButton { background-color: #0078FF; color: #FFFFFF; border: none; } QToolButton:hover, QToolButton:pressed { background-color: #006EE6; }"},
             {"action": self.app.window.actionUpdate, "icon": "themes/cosmic/images/warning.svg", "visible": False, "style": Qt.ToolButtonTextBesideIcon, "stylesheet": "QToolButton {  background-color: #141923; color: #FABE0A; }"}
         ]
         self.set_toolbar_buttons(self.app.window.toolBar, icon_size=20, settings=toolbar_buttons)

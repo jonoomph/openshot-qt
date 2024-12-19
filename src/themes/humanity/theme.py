@@ -42,6 +42,10 @@ QComboBox::item {
     height: 24px;
 }
 
+QComboBox {
+    combobox-popup: 0;
+}
+
 .property_value {
     foreground-color: #217dd4;
     background-color: #565656;
@@ -98,6 +102,10 @@ QMainWindow::separator:hover {
 
 QWidget#videoPreview {
     background-color: #dedede;
+}
+
+QComboBox {
+    combobox-popup: 0;
 }
         """
 
