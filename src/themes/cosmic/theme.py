@@ -122,6 +122,8 @@ QToolBar#toolBar QToolButton {
     color: #91C3FF;
     padding-top: 10px;
     padding-bottom: 10px;
+    padding-left: 8px;
+    padding-right: 8px;
     border: none;
 }
 
