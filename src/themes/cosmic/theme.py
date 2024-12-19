@@ -122,6 +122,8 @@ QToolBar#toolBar QToolButton {
     color: #91C3FF;
     padding-top: 10px;
     padding-bottom: 10px;
+    padding-left: 8px;
+    padding-right: 8px;
     border: none;
 }
 
@@ -276,7 +278,8 @@ QTabBar::tab {
 }
 
 QTabWidget#exportTabs QTabBar::tab,
-QTabWidget#tabCategories QTabBar::tab {
+QTabWidget#tabCategories QTabBar::tab,
+QTabWidget#tabCredits QTabBar::tab{
     margin-bottom: 10px;
 }
 
@@ -451,13 +454,6 @@ QWidget#cutting QPushButton#btnAddClip {
 QWidget#cutting QPushButton#btnAddClip:disabled {
     background-color: #283241;
     color: #666666;
-}
-
-QWidget#aboutDialog QWidget#txtversion {
-    background-color: #141923;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    border-radius: 4px;
 }
 
 .property_value {
