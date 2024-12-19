@@ -96,9 +96,21 @@ class About(QDialog):
         self.app = get_app()
         _ = self.app._tr
 
-        # Load logo banner (using display DPI)
-        icon = QIcon(":/about/AboutLogo.png")
-        self.lblAboutLogo.setPixmap(icon.pixmap(icon.availableSizes()[0]))
+        self.setStyleSheet("""
+            QDialog {
+                background-image: url(:/about/AboutLogo.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: stretch;
+                margin: 0px;
+                padding: 0px;
+                border: none;
+            }
+            QLabel#txtversion, QLabel#lblAboutCompany {
+                background: transparent;
+                margin-bottom: 10px;
+            }
+        """)
 
         # Hide chnagelog button by default
         self.btnchangelog.setVisible(False)
@@ -113,45 +125,34 @@ class About(QDialog):
         else:
             log.warn("No changelog files found, disabling button")
 
-        create_text = _('Create &amp; Edit Amazing Videos and Movies')
         description_text = _("OpenShot Video Editor is an Award-Winning, Free, and<br> Open-Source Video Editor for Linux, Mac, Chrome OS, and Windows.")
-        learnmore_text = _('Learn more')
         copyright_text = _('Copyright &copy; %(begin_year)s-%(current_year)s') % {
             'begin_year': '2008',
             'current_year': str(datetime.datetime.today().year)
             }
         about_html = '''
-            <html><head/><body style="padding:24px 0;"><hr/>
-            <div align="center" style="margin:12px 0;">
-              <p style="font-size:10pt;font-weight:600;margin-bottom:18px;">
-                %s
-              </p>
-              <p style="font-size:10pt;margin-bottom:12px;">%s
+            <div align="center" style="">
+              <p style="font-size:11pt; font-weight: 300;">
                 <a href="https://www.openshot.org/%s?r=about-us"
-                   style="text-decoration:none;">%s</a>
+                   style="text-decoration:none; color: #ffffff;">%s</a>
               </p>
             </div>
-            </body></html>
             ''' % (
-                create_text,
-                description_text,
                 info.website_language(),
-                learnmore_text)
+                description_text,)
         company_html = '''
-            <html><head/>
-            <body style="font-size:10pt;font-weight:400;font-style:normal;padding:24px 0;">
-            <hr />
-            <div style="margin:12px 0;font-weight:600;" align="center">
-              %s
+            <div style="font-weight:400;" align="right">
+              %s<br>
               <a href="http://www.openshotstudios.com?r=about-us"
-                 style="text-decoration:none;">OpenShot Studios, LLC</a><br/>
+                 style="text-decoration:none; color: #91C3FF;">OpenShot Studios, LLC</a>
             </div>
-            </body></html>
             ''' % (copyright_text)
 
         # Set description and company labels
         self.lblAboutDescription.setText(about_html)
         self.lblAboutCompany.setText(company_html)
+        self.lblAboutCompany.setAlignment(Qt.AlignRight | Qt.AlignBottom)
+        self.txtversion.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
 
         # set events handlers
         self.btncredit.clicked.connect(self.load_credit)
@@ -169,8 +170,13 @@ class About(QDialog):
 
     def display_release(self, version_text):
 
-        self.txtversion.setText(version_text)
-        self.txtversion.setAlignment(Qt.AlignCenter)
+        version_html = '''
+            <div style="font-weight:400;" align="left">
+              %s
+            </div>
+            ''' % (version_text)
+
+        self.txtversion.setText(version_html)
 
     def get_current_release(self):
         """Get the current version """
@@ -211,26 +217,33 @@ class About(QDialog):
                         string_release_notes = _("Release Notes")
                         string_official = _("Official")
                         version_date = version_info.get("date")
+
+                        # Parse the date string into a datetime object
+                        date_obj = datetime.datetime.strptime(version_date, "%Y-%m-%d %H:%M")
+                        formatted_date = date_obj.strftime("%Y-%m-%d")
+
                         if frozen_git_SHA == release_git_SHA:
                             # Remove -release-candidate... from build name
-                            log.warning("Official release detected with SHA (%s) for v%s" %
-                                        (release_git_SHA, info.VERSION))
+                            log.warning("Official release detected with SHA (%s) for v%s" % (release_git_SHA, info.VERSION))
                             build_name = build_name.replace("-candidate", "")
-                            frozen_version_label = f'<br/><br/><b>{build_name} ({string_official})</b><br/>{string_release_date}: {version_date}<br><a href="{release_notes}" style="text-decoration:none;">{string_release_notes}</a>'
+                            frozen_version_label = f'{build_name} | {string_official}<br/>{string_release_date}: {formatted_date}'
+                            if string_release_notes:
+                                frozen_version_label += f' | <a href="{release_notes}" style="text-decoration:none;color: #91C3FF;">{string_release_notes}</a>'
                         else:
                             # Display current build name - unedited
                             log.warning("Build SHA (%s) does not match an official release SHA (%s) for v%s" %
                                         (frozen_git_SHA, release_git_SHA, info.VERSION))
-                            frozen_version_label = f"<br/><br/><b>{build_name}</b><br/>{string_release_date}: {version_date}"
+                            frozen_version_label = f"{build_name}<br/>{string_release_date}: {formatted_date}"
 
             # Init some variables
             openshot_qt_version = _("Version: %s") % info.VERSION
-            libopenshot_version = "libopenshot: %s" % openshot.OPENSHOT_VERSION_FULL
+            libopenshot_version = "%s" % openshot.OPENSHOT_VERSION_FULL
+            version_text = f"{openshot_qt_version} | {libopenshot_version}"
+            if frozen_version_label:
+                version_text += f"<br/>{frozen_version_label}"
 
             # emit release found
-            self.releaseFound.emit("<b>%s</b><br/>%s%s" % (openshot_qt_version,
-                                                           libopenshot_version,
-                                                           frozen_version_label))
+            self.releaseFound.emit(version_text)
 
         except Exception as Ex:
             log.error("Failed to get version from: %s" % RELEASE_URL % info.VERSION)
@@ -313,11 +326,9 @@ class Credits(QDialog):
         # Update supporter button
         supporter_text = _("Become a Supporter")
         supporter_html = '''
-            <html><head/><body>
             <p align="center">
               <a href="https://www.openshot.org/%sdonate/?app-about-us">%s</a>
             </p>
-            </body></html>
             ''' % (info.website_language(), supporter_text)
         self.lblBecomeSupporter.setText(supporter_html)
 
@@ -434,11 +445,9 @@ class Changelog(QDialog):
         # Update github link button
         github_text = _("OpenShot on GitHub")
         github_html = '''
-            <html><head/><body>
             <p align="center">
                 <a href="https://github.com/OpenShot/">%s</a>
             </p>
-            </body></html>
             ''' % (github_text)
         self.lblGitHubLink.setText(github_html)
 
