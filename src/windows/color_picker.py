@@ -82,6 +82,7 @@ class PickingDialog(QDialog):
     def __init__(self, pixmap, color_picker, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pixmap = pixmap
+        self.device_pixel_ratio = pixmap.devicePixelRatio()
         self.color_picker = color_picker
         self.setWindowModality(Qt.WindowModal)
         self.setGeometry(get_app().window.geometry())
@@ -105,16 +106,22 @@ class PickingDialog(QDialog):
     def mouseMoveEvent(self, event):
         if self.pixmap:
             image = self.pixmap.toImage()
-            if 0 <= event.x() < image.width() and 0 <= event.y() < image.height():
-                color = QColor(image.pixel(event.pos()))
+            # Scale the coordinates for High DPI displays
+            scaled_x = int(event.x() * self.device_pixel_ratio)
+            scaled_y = int(event.y() * self.device_pixel_ratio)
+            if 0 <= scaled_x < image.width() and 0 <= scaled_y < image.height():
+                color = QColor(image.pixel(scaled_x, scaled_y))
                 self.color_preview = color
                 self.update()
 
     def mousePressEvent(self, event):
         if self.pixmap:
             image = self.pixmap.toImage()
-            if 0 <= event.x() < image.width() and 0 <= event.y() < image.height():
-                color = QColor(image.pixel(event.pos()))
+            # Scale the coordinates for High DPI displays
+            scaled_x = int(event.x() * self.device_pixel_ratio)
+            scaled_y = int(event.y() * self.device_pixel_ratio)
+            if 0 <= scaled_x < image.width() and 0 <= scaled_y < image.height():
+                color = QColor(image.pixel(scaled_x, scaled_y))
                 self.color_picker.setCurrentColor(color)
                 log.debug(f"Picked color: {color.name()}")
         self.accept()  # Close the dialog
