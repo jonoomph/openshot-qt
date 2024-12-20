@@ -44,32 +44,51 @@ from classes import sentry
 class TutorialDialog(QWidget):
     """ A customized QWidget used to instruct a user how to use a certain feature """
 
-    def paintEvent(self, event, *args):
+    def paintEvent(self, event):
         """ Custom paint event """
-        # Paint custom frame image on QWidget
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+
+        # Define rounded rectangle geometry
+        rounded_rect = QRectF(31, 0, self.width() - 31, self.height())
+        corner_radius = 10
+
+        # Clip to the rounded rectangle
+        path = QPainterPath()
+        path.addRoundedRect(rounded_rect, corner_radius, corner_radius)
+        painter.setClipPath(path)
+
+        # Fill background
         frameColor = QColor("#53a0ed")
-
-        painter.setPen(QPen(frameColor, 2))
+        painter.setPen(QPen(frameColor, 1.2))
         painter.setBrush(self.palette().color(QPalette.Window))
-        painter.drawRoundedRect(
-            QRectF(31, 0,
-                   self.width() - 31,
-                   self.height()
-                   ),
-            10, 10)
+        painter.drawRoundedRect(rounded_rect, corner_radius, corner_radius)
 
-        # Paint blue triangle (if needed)
+        # Disable clipping temporarily for the arrow
+        painter.setClipping(False)
+
+        # Draw arrow if needed
         if self.arrow:
-            arrow_height = 20
+            arrow_height = 15
+            arrow_top = 35 - arrow_height
+            arrow_bottom = 35 + arrow_height
+            arrow_point = rounded_rect.topLeft().toPoint() + QPoint(-15, 35)
+            arrow_top_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_top)
+            arrow_bottom_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_bottom)
+
+            # Draw triangle (filled with the same background color as the window)
             path = QPainterPath()
-            path.moveTo(0, 35)
-            path.lineTo(31, 35 - arrow_height)
-            path.lineTo(
-                31, int((35 - arrow_height) + (arrow_height * 2)))
-            path.lineTo(0, 35)
-            painter.fillPath(path, frameColor)
+            path.moveTo(arrow_point)  # Starting point of the arrow
+            path.lineTo(arrow_top_corner)  # Top corner of the triangle
+            path.lineTo(arrow_bottom_corner)  # Bottom corner of the triangle
+            path.closeSubpath()
+            painter.fillPath(path, self.palette().color(QPalette.Window))
+
+            # Draw the triangle's borders
+            border_pen = QPen(frameColor, 1)
+            painter.setPen(border_pen)
+            painter.drawLine(arrow_point, arrow_top_corner)  # Top triangle border
+            painter.drawLine(arrow_point, arrow_bottom_corner)  # Bottom triangle border
 
     def checkbox_metrics_callback(self, state):
         """ Callback for error and anonymous usage checkbox"""
@@ -96,8 +115,13 @@ class TutorialDialog(QWidget):
         self.manager.next_tip(self.widget_id)
 
     def __init__(self, widget_id, text, arrow, manager, *args):
-        # Invoke parent init
-        QWidget.__init__(self, *args)
+        super().__init__(*args)
+
+        # Ensure frameless, floating behavior
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         # get translations
         app = get_app()
@@ -114,6 +138,7 @@ class TutorialDialog(QWidget):
 
         # Add label
         self.label = QLabel(self)
+        self.label.setObjectName("lblTutorialText")
         self.label.setText(text)
         self.label.setTextFormat(Qt.RichText)
         self.label.setWordWrap(True)
@@ -130,6 +155,7 @@ class TutorialDialog(QWidget):
 
             # create spinner
             checkbox_metrics = QCheckBox()
+            checkbox_metrics.setObjectName("checkboxMetrics")
             checkbox_metrics.setText(_("Yes, I would like to improve OpenShot!"))
             checkbox_metrics.setStyleSheet("margin-left: 25px; margin-bottom: 5px;")
             if s.get("send_metrics"):
@@ -151,9 +177,11 @@ class TutorialDialog(QWidget):
         # Create buttons
         self.btn_close_tips = QPushButton(self)
         self.btn_close_tips.setText(_("Hide Tutorial"))
+        self.btn_close_tips.setObjectName("HideTutorial")
         self.btn_close_tips.addAction(self.close_action)
 
         self.btn_next_tip = QPushButton(self)
+        self.btn_next_tip.setObjectName("NextTip")
         self.btn_next_tip.setText(_("Next"))
         self.btn_next_tip.setStyleSheet("font-weight:bold;")
 
@@ -167,11 +195,6 @@ class TutorialDialog(QWidget):
         self.setMinimumWidth(350)
         self.setMinimumHeight(100)
         self.setFocusPolicy(Qt.ClickFocus)
-
-        # Make transparent
-        self.setAttribute(Qt.WA_NoSystemBackground, True)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         # Connect close action signal
         self.close_action.triggered.connect(
@@ -361,6 +384,7 @@ class TutorialManager(QObject):
         self.win = win
         self.dock = win.dockTutorial
         self.current_dialog = None
+        self.dock.setParent(None)
 
         # get translations
         app = get_app()
@@ -441,7 +465,7 @@ class TutorialManager(QObject):
         self.dock.setTitleBarWidget(QWidget())  # Prevents window decoration
         self.dock.setAttribute(Qt.WA_NoSystemBackground, True)
         self.dock.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.dock.setWindowFlags(Qt.FramelessWindowHint)
+        self.dock.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.dock.setFloating(True)
 
         # Timer for processing new tutorials
