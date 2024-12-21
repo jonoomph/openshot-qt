@@ -55,6 +55,23 @@ QWidget#tutorial {
     padding: 20px;
 }
 
+QLabel#lblTutorialText {
+    font-size: 14px;
+}
+
+QCheckBox#checkboxMetrics {
+    font-size: 14px;
+}
+
+QWidget#tutorial QPushButton#NextTip {
+    background-color: #283241;
+    font-size: 12px;
+}
+
+QWidget#tutorial QPushButton#HideTutorial {
+    font-size: 12px;
+}
+
 
 QDialog {
     background-color: #192332;

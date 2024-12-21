@@ -27,7 +27,7 @@
 
 import functools
 
-from PyQt5.QtCore import Qt, QPoint, QRectF, QTimer, QObject
+from PyQt5.QtCore import Qt, QPoint, QRectF, QTimer, QObject, QRect
 from PyQt5.QtGui import (
     QColor, QPalette, QPen, QPainter, QPainterPath, QKeySequence,
 )
@@ -44,32 +44,70 @@ from classes import sentry
 class TutorialDialog(QWidget):
     """ A customized QWidget used to instruct a user how to use a certain feature """
 
-    def paintEvent(self, event, *args):
+    def paintEvent(self, event):
         """ Custom paint event """
-        # Paint custom frame image on QWidget
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
+
+        # Set correct margins based on left/right arrow
+        arrow_width = 15
+        if not self.draw_arrow_on_right:
+            self.vbox.setContentsMargins(45, 10, 20, 10)
+        else:
+            self.vbox.setContentsMargins(20, 10, 45, 10)
+
+        # Define rounded rectangle geometry
+        corner_radius = 10
+        if self.draw_arrow_on_right:
+            # Rectangle starts at left edge; arrow is on the right
+            rounded_rect = QRectF(0, 0, self.width() - arrow_width, self.height())
+        else:
+            # Rectangle shifted to the right; arrow is on the left
+            rounded_rect = QRectF(arrow_width, 0, self.width() - arrow_width, self.height())
+
+        # Clip to the rounded rectangle
+        path = QPainterPath()
+        path.addRoundedRect(rounded_rect, corner_radius, corner_radius)
+        painter.setClipPath(path)
+
+        # Fill background
         frameColor = QColor("#53a0ed")
-
-        painter.setPen(QPen(frameColor, 2))
+        painter.setPen(QPen(frameColor, 1.2))
         painter.setBrush(self.palette().color(QPalette.Window))
-        painter.drawRoundedRect(
-            QRectF(31, 0,
-                   self.width() - 31,
-                   self.height()
-                   ),
-            10, 10)
+        painter.drawRoundedRect(rounded_rect, corner_radius, corner_radius)
 
-        # Paint blue triangle (if needed)
+        # Disable clipping temporarily for the arrow
+        painter.setClipping(False)
+
+        # Draw arrow if needed
         if self.arrow:
-            arrow_height = 20
+            arrow_height = 15
+            arrow_offset = 35
+
+            if self.draw_arrow_on_right:
+                # Arrow on the right side
+                arrow_point = rounded_rect.topRight().toPoint() + QPoint(arrow_width, arrow_offset)
+                arrow_top_corner = rounded_rect.topRight().toPoint() + QPoint(-1, arrow_offset - arrow_height)
+                arrow_bottom_corner = rounded_rect.topRight().toPoint() + QPoint(-1, arrow_offset + arrow_height)
+            else:
+                # Arrow on the left side
+                arrow_point = rounded_rect.topLeft().toPoint() + QPoint(-arrow_width, arrow_offset)
+                arrow_top_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_offset - arrow_height)
+                arrow_bottom_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_offset + arrow_height)
+
+            # Draw triangle (filled with the same background color as the window)
             path = QPainterPath()
-            path.moveTo(0, 35)
-            path.lineTo(31, 35 - arrow_height)
-            path.lineTo(
-                31, int((35 - arrow_height) + (arrow_height * 2)))
-            path.lineTo(0, 35)
-            painter.fillPath(path, frameColor)
+            path.moveTo(arrow_point)  # Arrow tip
+            path.lineTo(arrow_top_corner)  # Top corner of the triangle
+            path.lineTo(arrow_bottom_corner)  # Bottom corner of the triangle
+            path.closeSubpath()
+            painter.fillPath(path, self.palette().color(QPalette.Window))
+
+            # Draw the triangle's borders
+            border_pen = QPen(frameColor, 1)
+            painter.setPen(border_pen)
+            painter.drawLine(arrow_point, arrow_top_corner)  # Top triangle border
+            painter.drawLine(arrow_point, arrow_bottom_corner)  # Bottom triangle border
 
     def checkbox_metrics_callback(self, state):
         """ Callback for error and anonymous usage checkbox"""
@@ -96,8 +134,13 @@ class TutorialDialog(QWidget):
         self.manager.next_tip(self.widget_id)
 
     def __init__(self, widget_id, text, arrow, manager, *args):
-        # Invoke parent init
-        QWidget.__init__(self, *args)
+        super().__init__(*args)
+
+        # Ensure frameless, floating behavior
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         # get translations
         app = get_app()
@@ -107,19 +150,20 @@ class TutorialDialog(QWidget):
         self.widget_id = widget_id
         self.arrow = arrow
         self.manager = manager
+        self.draw_arrow_on_right = False
 
         # Create vertical box
-        vbox = QVBoxLayout()
-        vbox.setContentsMargins(32, 10, 10, 10)
+        self.vbox = QVBoxLayout()
 
         # Add label
         self.label = QLabel(self)
+        self.label.setObjectName("lblTutorialText")
         self.label.setText(text)
         self.label.setTextFormat(Qt.RichText)
         self.label.setWordWrap(True)
-        self.label.setStyleSheet("margin-left: 20px;")
+        self.label.setStyleSheet("")
         self.label.setAttribute(Qt.WA_TransparentForMouseEvents)
-        vbox.addWidget(self.label)
+        self.vbox.addWidget(self.label)
 
         # Add error and anonymous metrics checkbox (for ID=0) tooltip
         # This is a bit of a hack, but since it's the only exception, it's
@@ -130,18 +174,18 @@ class TutorialDialog(QWidget):
 
             # create spinner
             checkbox_metrics = QCheckBox()
+            checkbox_metrics.setObjectName("checkboxMetrics")
             checkbox_metrics.setText(_("Yes, I would like to improve OpenShot!"))
-            checkbox_metrics.setStyleSheet("margin-left: 25px; margin-bottom: 5px;")
             if s.get("send_metrics"):
                 checkbox_metrics.setCheckState(Qt.Checked)
             else:
                 checkbox_metrics.setCheckState(Qt.Unchecked)
             checkbox_metrics.stateChanged.connect(functools.partial(self.checkbox_metrics_callback))
-            vbox.addWidget(checkbox_metrics)
+            self.vbox.addWidget(checkbox_metrics)
 
         # Add button box
         hbox = QHBoxLayout()
-        hbox.setContentsMargins(20, 10, 0, 0)
+        hbox.setContentsMargins(0, 5, 0, 5)
 
         # Close action
         self.close_action = QAction(_("Hide Tutorial"), self)
@@ -151,27 +195,24 @@ class TutorialDialog(QWidget):
         # Create buttons
         self.btn_close_tips = QPushButton(self)
         self.btn_close_tips.setText(_("Hide Tutorial"))
+        self.btn_close_tips.setObjectName("HideTutorial")
         self.btn_close_tips.addAction(self.close_action)
 
         self.btn_next_tip = QPushButton(self)
+        self.btn_next_tip.setObjectName("NextTip")
         self.btn_next_tip.setText(_("Next"))
         self.btn_next_tip.setStyleSheet("font-weight:bold;")
 
         hbox.addWidget(self.btn_close_tips)
         hbox.addWidget(self.btn_next_tip)
-        vbox.addLayout(hbox)
+        self.vbox.addLayout(hbox)
 
         # Set layout, cursor, and size
-        self.setLayout(vbox)
+        self.setLayout(self.vbox)
         self.setCursor(Qt.ArrowCursor)
         self.setMinimumWidth(350)
         self.setMinimumHeight(100)
         self.setFocusPolicy(Qt.ClickFocus)
-
-        # Make transparent
-        self.setAttribute(Qt.WA_NoSystemBackground, True)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         # Connect close action signal
         self.close_action.triggered.connect(
@@ -253,12 +294,15 @@ class TutorialManager(QObject):
         elif object_id == "actionPlay":
             # Find play/pause button on transport controls toolbar
             for w in self.win.actionPlay.associatedWidgets():
-                if isinstance(w, QToolButton):
+                if isinstance(w, QToolButton) and w.isVisible():
+                    return w
+            for w in self.win.actionPause.associatedWidgets():
+                if isinstance(w, QToolButton) and w.isVisible():
                     return w
         elif object_id == "export_button":
             # Find export toolbar button on main window
-            for w in self.win.actionExportVideo.associatedWidgets():
-                if isinstance(w, QToolButton):
+            for w in reversed(self.win.actionExportVideo.associatedWidgets()):
+                if isinstance(w, QToolButton) and  w.isVisible() and w.parent() == self.win.toolBar:
                     return w
 
     def next_tip(self, tid):
@@ -319,6 +363,7 @@ class TutorialManager(QObject):
     def re_show_dialog(self):
         """ Re show an active dialog """
         if self.current_dialog:
+            self.dock.update()
             self.dock.raise_()
             self.dock.show()
 
@@ -328,30 +373,57 @@ class TutorialManager(QObject):
             self.dock.hide()
 
     def re_position_dialog(self):
-        """ Reposition a tutorial dialog next to another widget """
-        if self.current_dialog:
-            # Check if target is visible
-            if self.position_widget.isHidden() or self.position_widget.visibleRegion().isEmpty():
-                self.hide_dialog()
-                return
+        """ Reposition the tutorial dialog next to self.position_widget. """
+        # Bail if no dialog or target widget hidden
+        if not self.current_dialog:
+            return
+        if self.position_widget.isHidden() or self.position_widget.visibleRegion().isEmpty():
+            self.hide_dialog()
+            return
 
-            # Locate tutorial popup relative to its "target" widget
-            pos_rect = self.position_widget.rect()
+        # Compute the reference rect of the target widget
+        pos_rect = self.position_widget.rect()
+        # “float” the popup 1/4 size away from top-left corner
+        pos_rect.setSize(pos_rect.size() / 4)
+        pos_rect.translate(self.offset)
 
-            # Start with a 1/4-size offset rectangle, so the tutorial dialog
-            # floats a bit, then apply any custom offset defined for this popup.
-            pos_rect.setSize(pos_rect.size() / 4)
-            pos_rect.translate(self.offset)
-            # Map the new rectangle's bottom-right corner to global coords
-            position = self.position_widget.mapToGlobal(pos_rect.bottomRight())
+        # Compute both possible positions (arrow on left vs. arrow on right)
+        # NOTE: We do this BEFORE we actually move the dialog!
+        position_arrow_left = self.position_widget.mapToGlobal(pos_rect.bottomRight())
+        position_arrow_right = self.position_widget.mapToGlobal(pos_rect.bottomLeft()) - QPoint(
+            self.current_dialog.width(), 0)
 
-            # Move tutorial widget to the correct position
-            self.dock.move(position)
-            self.re_show_dialog()
+        # Decide which side is viable. For example, we can see if arrow-on-left
+        # would run off the right side of the screen. If it does, pick arrow-on-right.
+        screen_rect = get_app().primaryScreen().availableGeometry()
+        monitor_width = screen_rect.width()
+
+        # If placing “arrow on left” means we’d exceed monitor width, we must switch to arrow on right
+        would_exceed_right_edge = (position_arrow_left.x() + self.current_dialog.width()) > monitor_width
+        if would_exceed_right_edge:
+            final_position = position_arrow_right
+            arrow_on_right = True
+        else:
+            final_position = position_arrow_left
+            arrow_on_right = False
+
+        # Update the dialog’s internal state (so paintEvent() knows how to draw it).
+        self.current_dialog.draw_arrow_on_right = arrow_on_right
+
+        # Update margins ONE time here, so geometry only changes once
+        if arrow_on_right:
+            self.current_dialog.vbox.setContentsMargins(20, 10, 45, 10)
+        else:
+            self.current_dialog.vbox.setContentsMargins(45, 10, 20, 10)
+
+        # Move the dock exactly once, and raise it
+        self.dock.move(final_position)
+        self.re_show_dialog()
 
     def process_visibility(self):
         """Handle callbacks when widget visibility changes"""
-        self.tutorial_timer.start()
+        if self.tutorial_enabled:
+            self.tutorial_timer.start()
 
     def __init__(self, win, *args):
         # Init QObject superclass
@@ -361,6 +433,7 @@ class TutorialManager(QObject):
         self.win = win
         self.dock = win.dockTutorial
         self.current_dialog = None
+        self.dock.setParent(None)
 
         # get translations
         app = get_app()
@@ -396,7 +469,7 @@ class TutorialManager(QObject):
              },
             {"id": "3",
              "x": 10,
-             "y": -27,
+             "y": -42,
              "object_id": "actionPlay",
              "text": _("<b>Video Preview:</b> Watch your timeline video preview here. Use the buttons (play, rewind, fast-forward) to control the video playback."),
              "arrow": True},
@@ -441,7 +514,7 @@ class TutorialManager(QObject):
         self.dock.setTitleBarWidget(QWidget())  # Prevents window decoration
         self.dock.setAttribute(Qt.WA_NoSystemBackground, True)
         self.dock.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.dock.setWindowFlags(Qt.FramelessWindowHint)
+        self.dock.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.dock.setFloating(True)
 
         # Timer for processing new tutorials
@@ -457,7 +530,3 @@ class TutorialManager(QObject):
         self.win.dockProperties.visibilityChanged.connect(self.process_visibility)
         self.win.dockVideo.visibilityChanged.connect(self.process_visibility)
         self.win.dockEmojis.visibilityChanged.connect(self.process_visibility)
-
-        # Process tutorials (1 by 1)
-        if self.tutorial_enabled:
-            self.process_visibility()

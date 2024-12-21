@@ -2506,6 +2506,7 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
         if self.tutorial_manager:
             self.tutorial_manager.exit_manager()
             self.tutorial_manager = TutorialManager(self)
+            self.tutorial_manager.process_visibility()
 
     def actionInsertTimestamp_trigger(self, event):
         """Insert the current timestamp into the caption editor
@@ -3848,4 +3849,3 @@ class MainWindow(updates.UpdateWatcher, QMainWindow):
 
         # Init all Keyboard shortcuts
         self.initShortcuts()
-
