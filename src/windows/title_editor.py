@@ -505,7 +505,6 @@ class TitleEditor(QDialog):
         ColorPicker(
             self.font_color_code, parent=self,
             title=_("Select a Color"),
-            extra_options=QColorDialog.ShowAlphaChannel,
             callback=callback_func)
 
     def btnBackgroundColor_clicked(self):
@@ -521,7 +520,6 @@ class TitleEditor(QDialog):
         ColorPicker(
             self.bg_color_code, parent=self,
             title=_("Select a Color"),
-            extra_options=QColorDialog.ShowAlphaChannel,
             callback=callback_func)
 
     def btnFont_clicked(self):
