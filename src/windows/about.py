@@ -144,6 +144,7 @@ class About(QDialog):
             ''' % (copyright_text)
 
         # Set description and company labels
+        self.lblAboutDescription.setWordWrap(True)
         self.lblAboutDescription.setText(about_html)
         self.lblAboutCompany.setText(company_html)
         self.lblAboutCompany.setAlignment(Qt.AlignRight | Qt.AlignBottom)
