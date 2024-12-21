@@ -27,7 +27,7 @@
 
 import functools
 
-from PyQt5.QtCore import Qt, QPoint, QRectF, QTimer, QObject
+from PyQt5.QtCore import Qt, QPoint, QRectF, QTimer, QObject, QRect
 from PyQt5.QtGui import (
     QColor, QPalette, QPen, QPainter, QPainterPath, QKeySequence,
 )
@@ -49,9 +49,21 @@ class TutorialDialog(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
+        # Set correct margins based on left/right arrow
+        arrow_width = 15
+        if not self.draw_arrow_on_right:
+            self.vbox.setContentsMargins(45, 10, 20, 10)
+        else:
+            self.vbox.setContentsMargins(20, 10, 45, 10)
+
         # Define rounded rectangle geometry
-        rounded_rect = QRectF(31, 0, self.width() - 31, self.height())
         corner_radius = 10
+        if self.draw_arrow_on_right:
+            # Rectangle starts at left edge; arrow is on the right
+            rounded_rect = QRectF(0, 0, self.width() - arrow_width, self.height())
+        else:
+            # Rectangle shifted to the right; arrow is on the left
+            rounded_rect = QRectF(arrow_width, 0, self.width() - arrow_width, self.height())
 
         # Clip to the rounded rectangle
         path = QPainterPath()
@@ -70,15 +82,22 @@ class TutorialDialog(QWidget):
         # Draw arrow if needed
         if self.arrow:
             arrow_height = 15
-            arrow_top = 35 - arrow_height
-            arrow_bottom = 35 + arrow_height
-            arrow_point = rounded_rect.topLeft().toPoint() + QPoint(-15, 35)
-            arrow_top_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_top)
-            arrow_bottom_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_bottom)
+            arrow_offset = 35
+
+            if self.draw_arrow_on_right:
+                # Arrow on the right side
+                arrow_point = rounded_rect.topRight().toPoint() + QPoint(arrow_width, arrow_offset)
+                arrow_top_corner = rounded_rect.topRight().toPoint() + QPoint(-1, arrow_offset - arrow_height)
+                arrow_bottom_corner = rounded_rect.topRight().toPoint() + QPoint(-1, arrow_offset + arrow_height)
+            else:
+                # Arrow on the left side
+                arrow_point = rounded_rect.topLeft().toPoint() + QPoint(-arrow_width, arrow_offset)
+                arrow_top_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_offset - arrow_height)
+                arrow_bottom_corner = rounded_rect.topLeft().toPoint() + QPoint(1, arrow_offset + arrow_height)
 
             # Draw triangle (filled with the same background color as the window)
             path = QPainterPath()
-            path.moveTo(arrow_point)  # Starting point of the arrow
+            path.moveTo(arrow_point)  # Arrow tip
             path.lineTo(arrow_top_corner)  # Top corner of the triangle
             path.lineTo(arrow_bottom_corner)  # Bottom corner of the triangle
             path.closeSubpath()
@@ -131,10 +150,10 @@ class TutorialDialog(QWidget):
         self.widget_id = widget_id
         self.arrow = arrow
         self.manager = manager
+        self.draw_arrow_on_right = False
 
         # Create vertical box
-        vbox = QVBoxLayout()
-        vbox.setContentsMargins(32, 10, 10, 10)
+        self.vbox = QVBoxLayout()
 
         # Add label
         self.label = QLabel(self)
@@ -142,9 +161,9 @@ class TutorialDialog(QWidget):
         self.label.setText(text)
         self.label.setTextFormat(Qt.RichText)
         self.label.setWordWrap(True)
-        self.label.setStyleSheet("margin-left: 20px;")
+        self.label.setStyleSheet("")
         self.label.setAttribute(Qt.WA_TransparentForMouseEvents)
-        vbox.addWidget(self.label)
+        self.vbox.addWidget(self.label)
 
         # Add error and anonymous metrics checkbox (for ID=0) tooltip
         # This is a bit of a hack, but since it's the only exception, it's
@@ -157,17 +176,16 @@ class TutorialDialog(QWidget):
             checkbox_metrics = QCheckBox()
             checkbox_metrics.setObjectName("checkboxMetrics")
             checkbox_metrics.setText(_("Yes, I would like to improve OpenShot!"))
-            checkbox_metrics.setStyleSheet("margin-left: 25px; margin-bottom: 5px;")
             if s.get("send_metrics"):
                 checkbox_metrics.setCheckState(Qt.Checked)
             else:
                 checkbox_metrics.setCheckState(Qt.Unchecked)
             checkbox_metrics.stateChanged.connect(functools.partial(self.checkbox_metrics_callback))
-            vbox.addWidget(checkbox_metrics)
+            self.vbox.addWidget(checkbox_metrics)
 
         # Add button box
         hbox = QHBoxLayout()
-        hbox.setContentsMargins(20, 10, 0, 0)
+        hbox.setContentsMargins(0, 5, 0, 5)
 
         # Close action
         self.close_action = QAction(_("Hide Tutorial"), self)
@@ -187,10 +205,10 @@ class TutorialDialog(QWidget):
 
         hbox.addWidget(self.btn_close_tips)
         hbox.addWidget(self.btn_next_tip)
-        vbox.addLayout(hbox)
+        self.vbox.addLayout(hbox)
 
         # Set layout, cursor, and size
-        self.setLayout(vbox)
+        self.setLayout(self.vbox)
         self.setCursor(Qt.ArrowCursor)
         self.setMinimumWidth(350)
         self.setMinimumHeight(100)
@@ -345,6 +363,7 @@ class TutorialManager(QObject):
     def re_show_dialog(self):
         """ Re show an active dialog """
         if self.current_dialog:
+            self.dock.update()
             self.dock.raise_()
             self.dock.show()
 
@@ -354,26 +373,52 @@ class TutorialManager(QObject):
             self.dock.hide()
 
     def re_position_dialog(self):
-        """ Reposition a tutorial dialog next to another widget """
-        if self.current_dialog:
-            # Check if target is visible
-            if self.position_widget.isHidden() or self.position_widget.visibleRegion().isEmpty():
-                self.hide_dialog()
-                return
+        """ Reposition the tutorial dialog next to self.position_widget. """
+        # Bail if no dialog or target widget hidden
+        if not self.current_dialog:
+            return
+        if self.position_widget.isHidden() or self.position_widget.visibleRegion().isEmpty():
+            self.hide_dialog()
+            return
 
-            # Locate tutorial popup relative to its "target" widget
-            pos_rect = self.position_widget.rect()
+        # Compute the reference rect of the target widget
+        pos_rect = self.position_widget.rect()
+        # “float” the popup 1/4 size away from top-left corner
+        pos_rect.setSize(pos_rect.size() / 4)
+        pos_rect.translate(self.offset)
 
-            # Start with a 1/4-size offset rectangle, so the tutorial dialog
-            # floats a bit, then apply any custom offset defined for this popup.
-            pos_rect.setSize(pos_rect.size() / 4)
-            pos_rect.translate(self.offset)
-            # Map the new rectangle's bottom-right corner to global coords
-            position = self.position_widget.mapToGlobal(pos_rect.bottomRight())
+        # Compute both possible positions (arrow on left vs. arrow on right)
+        # NOTE: We do this BEFORE we actually move the dialog!
+        position_arrow_left = self.position_widget.mapToGlobal(pos_rect.bottomRight())
+        position_arrow_right = self.position_widget.mapToGlobal(pos_rect.bottomLeft()) - QPoint(
+            self.current_dialog.width(), 0)
 
-            # Move tutorial widget to the correct position
-            self.dock.move(position)
-            self.re_show_dialog()
+        # Decide which side is viable. For example, we can see if arrow-on-left
+        # would run off the right side of the screen. If it does, pick arrow-on-right.
+        screen_rect = get_app().primaryScreen().availableGeometry()
+        monitor_width = screen_rect.width()
+
+        # If placing “arrow on left” means we’d exceed monitor width, we must switch to arrow on right
+        would_exceed_right_edge = (position_arrow_left.x() + self.current_dialog.width()) > monitor_width
+        if would_exceed_right_edge:
+            final_position = position_arrow_right
+            arrow_on_right = True
+        else:
+            final_position = position_arrow_left
+            arrow_on_right = False
+
+        # Update the dialog’s internal state (so paintEvent() knows how to draw it).
+        self.current_dialog.draw_arrow_on_right = arrow_on_right
+
+        # Update margins ONE time here, so geometry only changes once
+        if arrow_on_right:
+            self.current_dialog.vbox.setContentsMargins(20, 10, 45, 10)
+        else:
+            self.current_dialog.vbox.setContentsMargins(45, 10, 20, 10)
+
+        # Move the dock exactly once, and raise it
+        self.dock.move(final_position)
+        self.re_show_dialog()
 
     def process_visibility(self):
         """Handle callbacks when widget visibility changes"""
@@ -424,7 +469,7 @@ class TutorialManager(QObject):
              },
             {"id": "3",
              "x": 10,
-             "y": -27,
+             "y": -42,
              "object_id": "actionPlay",
              "text": _("<b>Video Preview:</b> Watch your timeline video preview here. Use the buttons (play, rewind, fast-forward) to control the video playback."),
              "arrow": True},
