@@ -276,12 +276,15 @@ class TutorialManager(QObject):
         elif object_id == "actionPlay":
             # Find play/pause button on transport controls toolbar
             for w in self.win.actionPlay.associatedWidgets():
-                if isinstance(w, QToolButton):
+                if isinstance(w, QToolButton) and w.isVisible():
+                    return w
+            for w in self.win.actionPause.associatedWidgets():
+                if isinstance(w, QToolButton) and w.isVisible():
                     return w
         elif object_id == "export_button":
             # Find export toolbar button on main window
-            for w in self.win.actionExportVideo.associatedWidgets():
-                if isinstance(w, QToolButton):
+            for w in reversed(self.win.actionExportVideo.associatedWidgets()):
+                if isinstance(w, QToolButton) and  w.isVisible() and w.parent() == self.win.toolBar:
                     return w
 
     def next_tip(self, tid):
@@ -374,7 +377,8 @@ class TutorialManager(QObject):
 
     def process_visibility(self):
         """Handle callbacks when widget visibility changes"""
-        self.tutorial_timer.start()
+        if self.tutorial_enabled:
+            self.tutorial_timer.start()
 
     def __init__(self, win, *args):
         # Init QObject superclass
@@ -481,7 +485,3 @@ class TutorialManager(QObject):
         self.win.dockProperties.visibilityChanged.connect(self.process_visibility)
         self.win.dockVideo.visibilityChanged.connect(self.process_visibility)
         self.win.dockEmojis.visibilityChanged.connect(self.process_visibility)
-
-        # Process tutorials (1 by 1)
-        if self.tutorial_enabled:
-            self.process_visibility()
