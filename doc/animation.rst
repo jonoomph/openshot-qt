@@ -89,6 +89,10 @@ drag and drop one of them into OpenShot, and you will be prompted to import the 
 these sequential images rapidly, as if they are frames in a video. The rate or speed in which these images are displayed
 is based on their frame rate.
 
+**NOTE:** Be sure your image sequence starts at 0 or 1, or you will likely receive an error when importing it into OpenShot.
+For example, if your sequence starts at cat222.png, or has missing images in the sequence, OpenShot will
+struggle to understand the sequence. An easy work-around is to renumber the images so they start with 1.
+
 .. image:: images/import-image-sequence.jpg
 
 To adjust the frame rate of the animation, right click and choose **File Properties** in the **Project Files** panel,
